@@ -187,20 +187,58 @@ function Copy-WindowsFiles {
     Write-Log "File copy complete"
 }
 
-function Validate-ImageIndex {
-    Write-Log "Validating image index $INDEX..."
+function Resolve-ImageIndex {
+    Write-Log "Resolving and validating image index $INDEX..."
     
-    $images = Get-WindowsImage -ImagePath $wimFilePath
-    $validIndices = $images.ImageIndex
-    
-    if ($INDEX -notin $validIndices) {
-        Write-Log "Invalid index $INDEX. Available indices:" "ERROR"
-        $images | ForEach-Object { Write-Log "  Index $($_.ImageIndex): $($_.ImageName)" }
-        throw "Image index $INDEX not found"
+    $sourceImagePath = ""
+    if (Test-Path "$DriveLetter\sources\install.wim") {
+        $sourceImagePath = "$DriveLetter\sources\install.wim"
+    } elseif (Test-Path "$DriveLetter\sources\install.esd") {
+        $sourceImagePath = "$DriveLetter\sources\install.esd"
+    } else {
+        throw "Windows installation files not found on ISO"
     }
     
-    $selectedImage = $images | Where-Object { $_.ImageIndex -eq $INDEX }
-    Write-Log "Selected: Index $INDEX - $($selectedImage.ImageName)"
+    $images = Get-WindowsImage -ImagePath $sourceImagePath
+    
+    # Standard Microsoft index mapping for Consumer ISOs
+    $expectedNames = @{
+        1 = "Windows 11 Home"
+        4 = "Windows 11 Education"
+        6 = "Windows 11 Pro"
+        7 = "Windows 11 Pro N"
+    }
+    
+    $targetName = $expectedNames[$INDEX]
+    
+    if ($targetName) {
+        $foundImage = $images | Where-Object { $_.ImageName -eq $targetName }
+        if ($foundImage) {
+            $actualIndex = $foundImage.ImageIndex
+            if ($actualIndex -ne $INDEX) {
+                Write-Log "Index shifted! Expected '$targetName' at $INDEX, but found at $actualIndex." "WARN"
+                Write-Log "Automatically adjusting INDEX to $actualIndex."
+                $script:INDEX = $actualIndex
+            } else {
+                Write-Log "Edition '$targetName' matched expected index $INDEX."
+            }
+        } else {
+            Write-Log "Expected edition '$targetName' not found in ISO. Proceeding with literal index $INDEX." "WARN"
+        }
+    } else {
+        Write-Log "No standard mapping for index $INDEX. Proceeding with literal index."
+    }
+    
+    $validIndices = $images.ImageIndex
+    
+    if ($script:INDEX -notin $validIndices) {
+        Write-Log "Invalid index $script:INDEX. Available indices:" "ERROR"
+        $images | ForEach-Object { Write-Log "  Index $($_.ImageIndex): $($_.ImageName)" }
+        throw "Image index $script:INDEX not found"
+    }
+    
+    $selectedImage = $images | Where-Object { $_.ImageIndex -eq $script:INDEX }
+    Write-Log "Selected: Index $script:INDEX - $($selectedImage.ImageName)"
 }
 
 function Mount-WindowsImageFile {
@@ -686,19 +724,22 @@ try {
     
     Test-Prerequisites
     
+    Resolve-ImageIndex
+    
     # Handle install.esd conversion if needed
     if (Test-Path "$DriveLetter\sources\install.esd") {
         Write-Log "Found install.esd, conversion required"
         Initialize-Directories
         Convert-ESDToWIM
         Copy-WindowsFiles
+        Write-Log "Resetting INDEX to 1 since ESD was exported to a new WIM"
+        $script:INDEX = 1
     } else {
         Write-Log "Found install.wim, no conversion needed"
         Initialize-Directories
         Copy-WindowsFiles
     }
     
-    Validate-ImageIndex
     Mount-WindowsImageFile
     Get-ImageMetadata
     
