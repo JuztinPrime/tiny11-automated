@@ -511,7 +511,7 @@ function Slim-DriverStore {
         'mfd*',      # Multi-function device drivers
         'wscsmd.inf*', # Smartcard readers
         'tapdrv*',   # Tape drives
-        'rdpbus.inf*', # Remote Desktop virtual bus
+        # rdpbus.inf intentionally kept: virtual bus enumeration path used by VMware/Hyper-V during setup
         'tdibth.inf*'  # Bluetooth Personal Area Network
     )
 
@@ -591,7 +591,10 @@ function Remove-MiscellaneousFiles {
     Remove-Item -Path "$scratchDir\Windows\System32\UsoApiAll.dll" -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "$scratchDir\Windows\System32\UsoApi.dll" -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "$scratchDir\Windows\System32\UpdatePolicy.dll" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$scratchDir\Windows\System32\drivers\umbus.sys" -Force -ErrorAction SilentlyContinue
+    # NOTE: umbus.sys (User-mode Bus Enumerator) is intentionally kept.
+    # Removing it causes Windows Setup to fail at ~77% on VMware and other hypervisors
+    # during the PnP device initialization phase. Users may remove it post-install
+    # on bare-metal systems if desired.
     Remove-Item -Path "$scratchDir\Windows\SoftwareDistribution" -Recurse -Force -ErrorAction SilentlyContinue
 
     Write-Log "Miscellaneous files removed"
