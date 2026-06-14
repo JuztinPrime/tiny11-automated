@@ -13,6 +13,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 
 import requests
+import re
 
 # Discord embed field values are capped at 1024 chars and the whole
 # embed at 6000. Keep generous margins below those hard limits.
@@ -77,10 +78,12 @@ class DiscordNotifier:
         return candidate.strftime('%Y-%m-%d %H:%M UTC')
 
     def _redact(self, message: str) -> str:
-        """Strip the webhook URL (which embeds a secret token) from log output."""
-        if self.webhook_url and self.webhook_url in message:
-            return message.replace(self.webhook_url, '<redacted-webhook-url>')
-        return message
+        """Strip the webhook token from log output using regex."""
+        return re.sub(
+            r'(https://discord(?:app)?\.com/api/webhooks/\d+/)[\w-]+',
+            r'\1<token>',
+            message,
+        )
 
     def send_embed(
         self,
@@ -339,7 +342,7 @@ class DiscordNotifier:
 
 def _require(data: Dict, *keys: str) -> None:
     """Raise a clear, actionable error if required JSON fields are missing."""
-    missing = [k for k in keys if k not in data]
+    missing = [k for k in keys if k not in data or data[k] is None]
     if missing:
         raise DiscordNotificationError(
             f"Missing required field(s) in --data JSON: {', '.join(missing)}"
@@ -375,6 +378,16 @@ def main():
     except json.JSONDecodeError as e:
         print(f"❌ Invalid JSON in --data: {e}")
         return 1
+
+    if args.data and not isinstance(data, (dict, list)):
+        print("❌ --data must be a JSON object or array")
+        return 1
+
+    # Coerce known embed fields to strings so Discord doesn't 400 on numeric values
+    if isinstance(data, dict):
+        for k in ('version', 'build_type', 'edition', 'duration', 'iso_size', 'error', 'logs_url'):
+            if k in data and data[k] is not None:
+                data[k] = str(data[k])
 
     try:
         notifier = DiscordNotifier(webhook_url)
