@@ -115,6 +115,7 @@ jobs:
               version = "${{ inputs.windows_version }}"
               build_type = "Nano"
               edition = "$env:EDITION_NAME"
+              preserve_winre = "${{ inputs.preserve_winre }}"
             } -Compress)
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_BUILDS }}
@@ -418,6 +419,7 @@ jobs:
               duration = "Completed"
               iso_size = $isoSize
               download_url = "https://sourceforge.net/projects/tiny-11-releases/"
+              preserve_winre = "${{ inputs.preserve_winre }}"
             } -Compress)
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_BUILDS }}
@@ -613,6 +615,7 @@ jobs:
             ```
 
             ### 💣 What's Removed (Beyond Core)
+            ${{ github.event.inputs.preserve_winre != 'true' && '- **Windows Recovery Environment (WinRE)**' || '' }}
             - **Driver packages** (printer, scanner, MFD, tape)
             - **Fonts** (keeping only Segoe, Arial, Calibri, Times)
             - **.NET Native Images** (pre-compiled assemblies)
@@ -627,6 +630,7 @@ jobs:
             - ❌ **NO Photos app** - Use file explorer only
             - ❌ **NO CJK Input** - Chinese/Japanese/Korean removed
             - ❌ **MINIMAL fonts** - Only essential Western fonts
+            - ${{ github.event.inputs.preserve_winre == 'true' && '✅ **Recovery intact** - WinRE preserved via -PreserveWinRE flag' || '❌ **NO Recovery** - No "Reset this PC" or Advanced Startup' }}
             - ❌ All Core limitations apply
 
             ### ✅ Use Cases

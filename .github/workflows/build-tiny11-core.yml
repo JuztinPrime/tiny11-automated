@@ -125,6 +125,8 @@ jobs:
               version = "${{ inputs.windows_version }}"
               build_type = "Core"
               edition = "$env:EDITION_NAME"
+              preserve_winre = "${{ inputs.preserve_winre }}"
+              enable_dotnet35 = "${{ inputs.enable_dotnet35 }}"
             } -Compress)
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_BUILDS }}
@@ -457,6 +459,8 @@ jobs:
               duration = "Completed"
               iso_size = $isoSize
               download_url = "https://sourceforge.net/projects/tiny-11-releases/"
+              preserve_winre = "${{ inputs.preserve_winre }}"
+              enable_dotnet35 = "${{ inputs.enable_dotnet35 }}"
             } -Compress)
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_BUILDS }}

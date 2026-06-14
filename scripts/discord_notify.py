@@ -201,7 +201,8 @@ class DiscordNotifier:
         self,
         version: str,
         build_type: str,
-        edition: str
+        edition: str,
+        extra_fields: Optional[List[Dict]] = None
     ) -> bool:
         """Notify when a build job starts"""
 
@@ -210,6 +211,9 @@ class DiscordNotifier:
             {'name': 'Type', 'value': build_type, 'inline': True},
             {'name': 'Edition', 'value': edition, 'inline': True}
         ]
+
+        if extra_fields:
+            fields.extend(extra_fields)
 
         return self.send_embed(
             title='🏗️ Build Started',
@@ -225,7 +229,8 @@ class DiscordNotifier:
         edition: str,
         duration: str,
         iso_size: str,
-        download_url: Optional[str] = None
+        download_url: Optional[str] = None,
+        extra_fields: Optional[List[Dict]] = None
     ) -> bool:
         """Notify when a build completes successfully"""
 
@@ -237,6 +242,9 @@ class DiscordNotifier:
             {'name': 'ISO Size', 'value': iso_size or 'Unknown', 'inline': True},
             {'name': 'Status', 'value': '✅ Ready', 'inline': True}
         ]
+
+        if extra_fields:
+            fields.extend(extra_fields)
 
         if download_url:
             fields.append({
@@ -349,6 +357,37 @@ def _require(data: Dict, *keys: str) -> None:
         )
 
 
+def _build_extra_fields(data: Dict) -> Optional[List[Dict]]:
+    """Build optional Discord embed fields from well-known optional keys in the data payload.
+
+    Currently surfaces:
+      - preserve_winre  → 'WinRE' field (Core / Nano builds)
+      - enable_dotnet35 → '.NET 3.5' field (Core builds)
+
+    Unknown keys are silently ignored so future callers can extend the payload
+    without touching this function.
+    """
+    fields: List[Dict] = []
+
+    if 'preserve_winre' in data and data['preserve_winre'] is not None:
+        val = str(data['preserve_winre']).lower()
+        fields.append({
+            'name': 'WinRE',
+            'value': '✅ Preserved' if val == 'true' else '❌ Removed (stub)',
+            'inline': True
+        })
+
+    if 'enable_dotnet35' in data and data['enable_dotnet35'] is not None:
+        val = str(data['enable_dotnet35']).lower()
+        fields.append({
+            'name': '.NET 3.5',
+            'value': '✅ Enabled' if val == 'true' else '❌ Disabled',
+            'inline': True
+        })
+
+    return fields if fields else None
+
+
 def main():
     """CLI interface for Discord notifications"""
 
@@ -405,15 +444,19 @@ def main():
 
         elif args.type == 'build-started':
             _require(data, 'version', 'build_type', 'edition')
+            extra_fields = _build_extra_fields(data)
             success = notifier.notify_build_started(
-                data['version'], data['build_type'], data['edition']
+                data['version'], data['build_type'], data['edition'],
+                extra_fields=extra_fields
             )
 
         elif args.type == 'build-completed':
             _require(data, 'version', 'build_type', 'edition', 'duration', 'iso_size')
+            extra_fields = _build_extra_fields(data)
             success = notifier.notify_build_completed(
                 data['version'], data['build_type'], data['edition'],
-                data['duration'], data['iso_size'], data.get('download_url')
+                data['duration'], data['iso_size'], data.get('download_url'),
+                extra_fields=extra_fields
             )
 
         elif args.type == 'build-failed':
