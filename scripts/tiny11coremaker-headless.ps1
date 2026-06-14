@@ -59,7 +59,10 @@ param (
     [switch]$SkipCleanup,
 
     [Parameter(Mandatory=$false, HelpMessage="Enable .NET Framework 3.5")]
-    [switch]$ENABLE_DOTNET35
+    [switch]$ENABLE_DOTNET35,
+
+    [Parameter(Mandatory=$false, HelpMessage="Preserve winre.wim instead of replacing it with an empty stub. Use this if targeting real hardware or 24H2/25H2 setups to avoid error 0x8007000B.")]
+    [switch]$PreserveWinRE
 )
 
 #---------[ Error Handling ]---------
@@ -1133,7 +1136,11 @@ try {
     }
 
     Remove-EdgeAndOneDrive
-    Remove-WinRE
+    if ($PreserveWinRE) {
+        Write-Log "Skipping WinRE removal (PreserveWinRE flag set)" "INFO"
+    } else {
+        Remove-WinRE
+    }
 
     Load-RegistryHives
     Apply-RegistryTweaks

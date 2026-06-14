@@ -49,7 +49,10 @@ param (
     [string]$SCRATCH,
 
     [Parameter(Mandatory=$false, HelpMessage="Skip cleanup of temporary files")]
-    [switch]$SkipCleanup
+    [switch]$SkipCleanup,
+
+    [Parameter(Mandatory=$false, HelpMessage="Preserve winre.wim instead of replacing it with an empty stub. Use this if targeting real hardware or 24H2/25H2 setups to avoid error 0x8007000B.")]
+    [switch]$PreserveWinRE
 )
 
 #---------[ Error Handling ]---------#
@@ -1234,7 +1237,11 @@ try {
     Clean-InputMethods
     Remove-MiscellaneousFiles
     Remove-EdgeAndOneDrive
-    Remove-WinRE
+    if ($PreserveWinRE) {
+        Write-Log "Skipping WinRE removal (PreserveWinRE flag set)" "INFO"
+    } else {
+        Remove-WinRE
+    }
 
     # Registry phase
     Load-RegistryHives
