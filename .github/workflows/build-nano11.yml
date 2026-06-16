@@ -366,18 +366,20 @@ jobs:
           Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
           BUILD TYPE: NANO11 (EXTREME MINIMAL - Testing Only!)
+          WinRE: $(if ("${{ github.event.inputs.preserve_winre }}" -eq "true") { "Preserved" } else { "Removed (stub)" })
 
           SHA256: $sha256
           MD5: $md5
 
           Removed Components:
+            $(if ("${{ github.event.inputs.preserve_winre }}" -ne "true") { "- Windows Recovery Environment (WinRE)" })
             - Drivers (printer, scanner, tape, MFD)
             - Fonts (most non-essential)
             - .NET Native Images
             - Input methods (CJK)
             - Services (Spooler, Fax, etc.)
             - Additional apps (Notepad, Paint, Photos, Camera)
-            - All Core build removals
+            - All other Core build removals
 
           ⚠️ THIS BUILD IS FOR VM TESTING ONLY
           "@

@@ -393,6 +393,8 @@ jobs:
 
           BUILD TYPE: TINY11 CORE (Minimal/WinSxS optimized)
           NOT FOR DAILY USE - Testing/VM only!
+          WinRE: $(if ("${{ github.event.inputs.preserve_winre }}" -eq "true") { "Preserved" } else { "Removed (stub)" })
+          .NET 3.5: ${{ github.event.inputs.enable_dotnet35 }}
 
           SHA256: $sha256
           MD5: $md5
