@@ -513,44 +513,44 @@ jobs:
           }
 
       - name: Display final warnings
-        shell: powershell
+        shell: pwsh
         run: |
           Write-Output ""
-          Write-Output "════════════════════════════════════════════════════════"
+          Write-Output "******************************************************************"
           Write-Output "  TINY11 CORE BUILD COMPLETED"
-          Write-Output "════════════════════════════════════════════════════════"
+          Write-Output "******************************************************************"
           Write-Output ""
           Write-Output "Build: ${{ env.ISO_NAME }}"
           Write-Output "Size: ${{ env.ISO_SIZE_GB }}GB"
           Write-Output "SHA256: ${{ env.ISO_SHA256 }}"
           Write-Output ""
-          Write-Output "⚠️  IMPORTANT WARNINGS:"
+          Write-Output "!!! IMPORTANT WARNINGS !!!"
           Write-Output ""
           Write-Output "This is a TINY11 CORE build with aggressive optimization:"
           if ("${{ github.event.inputs.preserve_winre }}" -eq "true") {
-            Write-Output "  ✓ WinRE preserved - Recovery environment intact"
+            Write-Output "  [+] WinRE preserved - Recovery environment intact"
           } else {
-            Write-Output "  ✗ WinRE removed - No recovery environment"
+            Write-Output "  [-] WinRE removed - No recovery environment"
           }
-          Write-Output "  ✗ WinSxS minimized - Cannot add features/updates"
-          Write-Output "  ✗ Defender disabled - No built-in antivirus"
-          Write-Output "  ✗ Updates disabled - Manual updates only"
+          Write-Output "  [-] WinSxS minimized - Cannot add features/updates"
+          Write-Output "  [-] Defender disabled - No built-in antivirus"
+          Write-Output "  [-] Updates disabled - Manual updates only"
           Write-Output ""
           Write-Output "Appropriate use cases:"
-          Write-Output "  ✓ Testing Windows 11 in VMs"
-          Write-Output "  ✓ Application compatibility testing"
-          Write-Output "  ✓ Development environments"
-          Write-Output "  ✓ Disposable/throwaway Windows instances"
+          Write-Output "  [+] Testing Windows 11 in VMs"
+          Write-Output "  [+] Application compatibility testing"
+          Write-Output "  [+] Development environments"
+          Write-Output "  [+] Disposable/throwaway Windows instances"
           Write-Output ""
           Write-Output "NOT suitable for:"
-          Write-Output "  ✗ Primary/daily-use systems"
-          Write-Output "  ✗ Systems requiring security updates"
-          Write-Output "  ✗ Production environments"
-          Write-Output "  ✗ Systems needing future feature additions"
+          Write-Output "  [-] Primary/daily-use systems"
+          Write-Output "  [-] Systems requiring security updates"
+          Write-Output "  [-] Production environments"
+          Write-Output "  [-] Systems needing future feature additions"
           Write-Output ""
-          Write-Output "════════════════════════════════════════════════════════"
+          Write-Output "******************************************************************"
           Write-Output "  USE AT YOUR OWN RISK"
-          Write-Output "════════════════════════════════════════════════════════"
+          Write-Output "******************************************************************"
           Write-Output ""
 
       - name: Validate SourceForge credentials
@@ -767,7 +767,7 @@ jobs:
             ${{ env.ISO_NAME }}.txt
           
       - name: Workflow summary
-        shell: powershell
+        shell: pwsh
         run: |
           $summary = @"
           # ✅ Tiny11 Core Build Completed Successfully

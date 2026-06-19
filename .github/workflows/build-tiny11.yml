@@ -615,7 +615,7 @@ jobs:
             ${{ env.ISO_NAME }}.txt
           
       - name: Workflow summary
-        shell: powershell
+        shell: pwsh
         run: |
           $summary = @"
           # ✅ Tiny11 Build Completed Successfully
