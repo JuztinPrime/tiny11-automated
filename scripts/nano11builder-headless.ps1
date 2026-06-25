@@ -51,7 +51,7 @@ param (
     [Parameter(Mandatory=$false, HelpMessage="Skip cleanup of temporary files")]
     [switch]$SkipCleanup,
 
-    [Parameter(Mandatory=$false, HelpMessage="Preserve winre.wim instead of replacing it with an empty stub. Use this if targeting real hardware or 24H2/25H2 setups to avoid error 0x8007000B.")]
+    [Parameter(Mandatory=$false, HelpMessage="Preserve winre.wim instead of deleting it. Use this if targeting real hardware, EFI-enabled VMs (VirtualBox/VMware/Hyper-V), or 24H2/25H2 setups. Without this flag, winre.wim is deleted entirely so Windows Setup skips WinRE config gracefully. DO NOT use an empty stub — it causes error 0x8007000B on EFI systems.")]
     [switch]$PreserveWinRE
 )
 
@@ -673,12 +673,28 @@ function Remove-EdgeAndOneDrive {
 }
 
 function Remove-WinRE {
-    Write-Log "Removing Windows Recovery Environment..."
-    
+    # Author: kelexine (https://github.com/kelexine)
+    #
+    # WHY NO STUB: Replacing winre.wim with a 0-byte empty file causes Windows
+    # Setup to hard-crash at ~75% with error 0x8007000B (ERROR_BAD_FORMAT) on
+    # EFI-enabled systems (VirtualBox, VMware, Hyper-V, real hardware with EFI).
+    #
+    # At ~75% setup invokes reagentc/DISM to configure the recovery environment.
+    # On EFI systems this step *actually parses the WIM header* — a 0-byte file
+    # is not a valid WIM, so the parser throws and setup aborts.
+    #
+    # When the file is simply ABSENT, Windows Setup gracefully skips WinRE
+    # configuration ("WinRE not found, skipping") and continues to 100%.
+    # The offline registry key WinREEnabled=0 (applied in Apply-RegistryTweaks)
+    # suppresses any post-boot attempt to re-configure or re-enable WinRE.
+    Write-Log "Removing Windows Recovery Environment (winre.wim)..."
+
     $winRE = "$scratchDir\Windows\System32\Recovery\winre.wim"
     if (Test-Path $winRE) {
-        Remove-Item -Path $winRE -Recurse -Force -ErrorAction SilentlyContinue
-        New-Item -Path $winRE -ItemType File -Force | Out-Null
+        Remove-Item -Path $winRE -Force -ErrorAction SilentlyContinue
+        Write-Log "winre.wim deleted. Windows Setup will skip WinRE config gracefully."
+    } else {
+        Write-Log "winre.wim not found — already absent, nothing to do." "WARN"
     }
 
     Write-Log "WinRE removed"
@@ -954,6 +970,13 @@ function Apply-RegistryTweaks {
     foreach ($path in $servicePaths) {
         Set-RegistryValue "HKLM\zSYSTEM\ControlSet001\Services\$path" "Start" "REG_DWORD" "4"
     }
+
+    # Disable WinRE — prevents reagentc from trying to reconfigure the recovery
+    # environment on first boot after winre.wim has been removed. Without this,
+    # Windows may attempt to recreate a WinRE partition and fail silently (or
+    # trigger error dialogs). WinREEnabled=0 tells reagentc the feature is
+    # intentionally absent. (Companion to the Remove-WinRE build-time deletion.)
+    Set-RegistryValue 'HKLM\zSYSTEM\ControlSet001\Control\WinRE' 'WinREEnabled' 'REG_DWORD' '0'
 
     # Hide settings pages
     Set-RegistryValue 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' 'SettingsPageVisibility' 'REG_SZ' 'hide:virus;windowsupdate'
